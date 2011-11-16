@@ -50,7 +50,9 @@ def doc_to_dict(instance, fields=None, exclude=None):
     a Form's ``initial`` keyword argument.
     ``fields`` is an optional list of field names. If provided, only the named
     fields will be included in the returned dict.
-    "exclude" is an optional list of field names. If provided, the named fields will be excluded form the returned dict, even if they are listed in the "fields" argument.
+    "exclude" is an optional list of field names. If provided, the named fields
+    will be excluded form the returned dict, even if they are listed in the "fields"
+    argument.
     """
     data = {}
     for name, field in instance._fields.items():
@@ -63,10 +65,17 @@ def doc_to_dict(instance, fields=None, exclude=None):
 
 def mongofield_to_formfield(mongo_field, widget=None, **kwargs):
     """
-    Returns a corresponding form field to your document field with some argument value. If mongo_field is not a supported field types, None will be returned.
+    Returns a corresponding form field to your document field with some argument value.
+    If mongo_field is not a supported field type, None will be returned.
     """
     if mongo_field.choices:
-        return forms.ChoiceField(choices = mongo_field.choices, widget = widget, label = mongo_field.verbose_name, required = mongo_field.required, help_text = mongo_field.help_text)
+        return forms.ChoiceField(
+                choices = mongo_field.choices,
+                widget = widget,
+                label = mongo_field.verbose_name,
+                required = mongo_field.required,
+                help_text = mongo_field.help_text
+                )
     if mongo_field.validation and callable(mongo_field.validation):
         validators = [mongo_field.validation]
     else:
@@ -167,8 +176,11 @@ def mongofield_to_formfield(mongo_field, widget=None, **kwargs):
 def fields_for_doc(doc, fields=None, exclude=None, widgets=None, formfield_callback=None):
     """
     Returns a ``SortedDict`` containing form fields for the given document.
-    ``fields`` is an optional list of field names. If provided, only the namedfields will be included in the returned fields.
-    "exclude" is an optional list of field names. If provided, the named fields will be excluded form the returned dict, even if they are listed in the "fields" argument.
+    ``fields`` is an optional list of field names. If provided, only the named
+    fields will be included in the returned fields.
+    "exclude" is an optional list of field names. If provided, the named fields
+    will be excluded form the returned dict, even if they are listed in the "fields"
+    argument.
     """
     field_list = []
     ignored = []
@@ -204,6 +216,9 @@ def fields_for_doc(doc, fields=None, exclude=None, widgets=None, formfield_callb
     return field_dict
 
 class DocFormOptions(object):
+    """
+    This class is used to collect attributes of subclass 'Meta' defined in the customed form class inherited from DocForm.
+    """
     def __init__(self, options=None):
         self.document = getattr(options, 'document', None)
         self.fields = getattr(options, 'fields', None)
@@ -211,6 +226,9 @@ class DocFormOptions(object):
         self.widgets = getattr(options, 'widgets', None)
 
 class DocFormMetaclass(type):
+    """
+    Metaclass that converts Field attributes to a dictionary. This is used to provide the declarative method to define a form class.
+    """
     def __new__(cls, name, bases, attrs):
         formfield_callback = attrs.pop('formfield_callback', None)
         try:
@@ -246,6 +264,10 @@ class DocFormMetaclass(type):
         return new_class
 
 class BaseDocForm(forms.BaseForm):
+    """
+    This is the main implementation of all the DocForm logic.
+    Note this class is different than DocForm.
+    """
     def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
             initial=None, error_class=forms.util.ErrorList, label_suffix=':',
             empty_permitted=False, instance=None):
@@ -289,7 +311,8 @@ class BaseDocForm(forms.BaseForm):
     def save(self, commit=False):
         """
         Saves this "form"'s cleaned_data into document instance "self.instance".
-        If commit=True, then the changes to "instance" will be saved to the database. Returns "instance".
+        If commit=True, then the changes to "instance" will be saved to the database.
+        Returns "instance".
         """
         if isinstance(self.instance, mongoengine.EmbeddedDocument):
             if commit:
@@ -320,15 +343,15 @@ class DocForm(BaseDocForm):
         email = EmailField(required=False, verbose_name=_("Publiced Email"), help_text=_("This email address is not related to account emails, and will be public to others"))
         description = StringField(verbose_name = _("Brief Description"), max_length = 500, default = '', required = False, help_text = _("The length of this description should no more than 500 characters"))
 
-    The corresponding ProjectNewForm
-    class UserInfoEditForm(DocForm):
+    The corresponding UserForm:
+    class UserForm(DocForm):
         class Meta:
             document = Project
             fields = ['first_name','email', 'description']
             exclude = ['last_name']
             widgets = {'description': forms.Textarea}
 
-    >>form = UserInfoEditForm(user)
+    >>form = UserForm(user)
 
     1. To use this class, you should at least specify the document class you want to bound.
     2. Fields and exclude are optional list fields, if no fields and exclude list were specified then all the fields in the document class will be included.
